@@ -1,0 +1,135 @@
+define Start(p)
+{
+  window<-MakeWindow("white")
+
+  testlaufRuns<-5
+  hauptlaufRuns<-10
+
+  gHomeX <- Round(gVideoWidth/2)
+  gHomeY <- Round(gVideoHeight/2)
+
+  particenpentID<-GetSubNum(window)
+
+  particenpentFile <- FileOpenWrite("data/" + particenpentID + ".csv")
+  FilePrint(particenpentFile, "runNo;time;distanceToTarget;targetRadius;isTargetHit")
+
+  lblTitle<-EasyLabel("Fitt's Law", gHomeX, gHomeY - 100, window, 48)
+  lblAuthors<-EasyLabel("ein Experiment von Timo Raschke und Pauline Schmiechen", gHomeX, gHomeY - 50, window, 24)
+  lblDescription<-EasyTextbox("Der folgende Versuch besteht aus einem Testlauf mit fünf Runden und einem Hauptlauf mit zehn Runden.
+
+Pro Runde muss jeweils zunächst auf den rot-umrandeten Startpunkt und anschließend auf die blaue Zielfläche geklickt werden.
+
+Viel Spaß und vielen Dank für die Teilnahme!", gVideoWidth / 4, gHomeY, window, 18, gVideoWidth / 2, 200)
+  lblPressAnyKey<-EasyLabel("Drücke eine beliebige Taste, um fortzufahren...", gHomeX, gHomeY * 2 - 75, window, 14)
+
+  Draw()
+
+  WaitForAnyKeyPress()
+
+  Hide(lblTitle)
+  Hide(lblAuthors)
+  Hide(lblDescription)
+  Hide(lblPressAnyKey)
+
+  lblParticipantID<-EasyTextbox(particenpentID, 25, 25, window, 16, 400, 100)
+  lblTrialDescription<-EasyLabel("Testlauf", gHomeX, 25, window, 36)
+  lblTrialDescriptionAlert<-EasyLabel("Klicken Sie zunächst in die Startfläche und dann auf den blauen Punkt!", gHomeX, 55, window, 18)
+
+  # StartPoint erstellen
+  startX<-50
+  startY<-gHomeY
+
+  startPoint<-Circle(startX, startY, 25, MakeColor("pink"), 0)
+  AddObject(startPoint, window)
+  Draw()
+
+  i<-0
+  lblTrialRun<-EasyLabel("Runde " + (i+1) + " von " + testlaufRuns, gHomeX, 80, window, 24)
+
+  while(i != testlaufRuns)
+  {
+    lblTrialRun.text <- "Runde " + (i+1) + " von " + testlaufRuns
+    Draw()
+    MoveMouseCursorToStart()
+    WaitForDownClick()
+    target<-CreateRandomTarget()
+    AddObject(target, window)
+    Draw()
+    clickXY <- WaitForDownClick()
+    RemoveObject(target, window)
+    Draw()
+    i<-i + 1
+  }
+
+  Hide(startPoint)
+  lblInfo<-EasyLabel("Drücke eine beliebige Taste, um den Hauptlauf zu starten!", gHomeX, gHomeY, window, 36)
+  Draw()
+  WaitForAnyKeyPress()
+  Hide(lblInfo)
+  Show(startPoint)
+
+  lblTrialDescription<-EasyLabel("Hauptlauf", gHomeX, 25, window, 36)
+  
+  Draw()
+  i<-0
+  while(i != hauptlaufRuns)
+  {
+    ## Startpunkt
+    lblTrialRun.text <- "Runde " + (i+1) + " von " + hauptlaufRuns
+    Draw()
+    MoveMouseCursorToStart()
+    WaitForDownClick()
+
+    ## Ziel erstellen und auf Klick warten
+    t1 <- GetTime()
+    target<-CreateRandomTarget()
+    AddObject(target, window)
+    Draw()
+    clickXY <- WaitForDownClick()
+
+    t2 <- GetTime()
+    neededTime <- t2 - t1
+    distance <- target.x - startPoint.x
+    radius <- target.R
+    isHit <- Inside(clickXY, target)
+
+    FilePrint(particenpentFile, i + ";" + neededTime + ";" + distance + ";" + radius + ";" + isHit)
+
+    RemoveObject(target, window)
+    Draw()
+    i<-i + 1
+  }
+
+  Hide(startPoint)
+  Hide(lblTrialRun)
+  Hide(lblTrialDescription)
+  Hide(lblTrialDescriptionAlert)
+  lblThx <- EasyLabel("Vielen Dank für die Teilnahme!", gHomeX, gHomeY, window, 48)
+  Draw()
+
+  WaitForAnyKeyPress()
+}
+
+define MoveMouseCursorToStart()
+{
+  startX<-50
+  startY<-Round(gVideoHeight/2)
+  SetMouseCursorPosition(startX, startY)
+}
+
+define RandomBetween(min, max)
+{
+  rnd<-Random()
+  return Floor(rnd * (max - min + 1) + min)
+}
+
+define CreateRandomTarget()
+{
+  rad<-RandomBetween(25, 50)
+  x<-RandomBetween(200, gVideoWidth - (rad * 2))
+  ## Print("Radius: " + rad)
+  ## Print("X: " + x)
+  y<-Round(gVideoHeight / 2)
+  target<-Circle(x, y, rad, MakeColor("blue"), 1)
+  return target
+}
